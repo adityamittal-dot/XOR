@@ -86,6 +86,7 @@ export function LabReportChat({
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
           <CardTitle>Ask Questions About This Report</CardTitle>
         </div>
+
         <p className="text-sm text-muted-foreground">
           Chat with AI about {fileName}
         </p>

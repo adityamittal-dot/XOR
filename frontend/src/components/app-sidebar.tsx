@@ -60,6 +60,7 @@ export function AppSidebar() {
           <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-white font-bold text-lg">V</span>
           </div>
+          
           <span className="font-semibold text-blue-600">MedVault</span>
         </NavLink>
       </SidebarHeader>
