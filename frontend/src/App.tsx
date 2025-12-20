@@ -1,29 +1,38 @@
 import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "./components/ui/avatar";
-import { Card, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./components/ui/dialog";
+import { Button } from "./components/ui/button";
 
 export default function App() {
   return (
-    <div className="p-8 max-w-md">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src="https://i.pravatar.cc/100" alt="User" />
-              <AvatarFallback>AM</AvatarFallback>
-            </Avatar>
+    <div className="p-8">
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button>Open Dialog</Button>
+        </DialogTrigger>
 
-            <div>
-              <CardTitle>Aditya Mittal</CardTitle>
-              <Badge>Admin</Badge>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete account</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">
+              Cancel
+            </Button>
+            <Button>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
