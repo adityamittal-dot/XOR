@@ -1,38 +1,29 @@
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "./components/ui/dialog";
-import { Button } from "./components/ui/button";
+import { Sidebar, MobileSidebar } from "./components/ui/sidebar";
 
 export default function App() {
   return (
-    <div className="p-8">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button>Open Dialog</Button>
-        </DialogTrigger>
+    <div className="flex h-screen">
+      <Sidebar>
+        <nav className="space-y-2">
+          <a className="block p-2 rounded hover:bg-gray-100">Dashboard</a>
+          <a className="block p-2 rounded hover:bg-gray-100">Patients</a>
+          <a className="block p-2 rounded hover:bg-gray-100">Reports</a>
+          <a className="block p-2 rounded hover:bg-gray-100">Settings</a>
+        </nav>
+      </Sidebar>
 
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete account</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
+      <main className="flex-1 p-6">
+        <MobileSidebar>
+          <nav className="space-y-2">
+            <a className="block p-2 rounded hover:bg-gray-100">Dashboard</a>
+            <a className="block p-2 rounded hover:bg-gray-100">Patients</a>
+            <a className="block p-2 rounded hover:bg-gray-100">Reports</a>
+            <a className="block p-2 rounded hover:bg-gray-100">Settings</a>
+          </nav>
+        </MobileSidebar>
 
-          <DialogFooter>
-            <Button className="bg-gray-200 text-gray-800 hover:bg-gray-300">
-              Cancel
-            </Button>
-            <Button>Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <h1 className="text-xl font-semibold">Main Content</h1>
+      </main>
     </div>
   );
 }
