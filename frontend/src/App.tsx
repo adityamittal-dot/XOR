@@ -1,9 +1,9 @@
+import { Button } from "./components/ui/button";
+
 export default function App() {
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-4">
-        XOR Frontend
-      </h1>
+    <div className="p-8">
+      <Button>Click me</Button>
     </div>
   );
 }
