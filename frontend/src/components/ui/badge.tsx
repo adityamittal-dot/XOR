@@ -1,4 +1,5 @@
 import * as React from "react";
+<<<<<<< HEAD
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -39,9 +40,25 @@ function Badge({
     <Comp
       data-slot="badge"
       className={cn(badgeVariants({ variant }), className)}
+=======
+import { cn } from "../../lib/utils";
+
+export type BadgeProps = React.HTMLAttributes<HTMLSpanElement>;
+
+export function Badge({ className, ...props }: BadgeProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800",
+        className
+      )}
+>>>>>>> origin/frontend
       {...props}
     />
   );
 }
+<<<<<<< HEAD
 
 export { Badge, badgeVariants };
+=======
+>>>>>>> origin/frontend

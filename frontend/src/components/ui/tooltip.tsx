@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+<<<<<<< HEAD
 import { cn } from "@/lib/utils";
 
 function TooltipProvider(
@@ -38,15 +39,32 @@ function TooltipTrigger(
 function TooltipContent({
   className,
   sideOffset = 4,
+=======
+import { cn } from "../../lib/utils";
+
+export const TooltipProvider = TooltipPrimitive.Provider;
+export const Tooltip = TooltipPrimitive.Root;
+export const TooltipTrigger = TooltipPrimitive.Trigger;
+
+export function TooltipContent({
+  className,
+  sideOffset = 6,
+>>>>>>> origin/frontend
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
+<<<<<<< HEAD
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
           "z-50 rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md",
+=======
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-md",
+>>>>>>> origin/frontend
           className
         )}
         {...props}
@@ -54,6 +72,7 @@ function TooltipContent({
     </TooltipPrimitive.Portal>
   );
 }
+<<<<<<< HEAD
 
 export {
   Tooltip,
@@ -61,3 +80,5 @@ export {
   TooltipContent,
   TooltipProvider,
 };
+=======
+>>>>>>> origin/frontend
