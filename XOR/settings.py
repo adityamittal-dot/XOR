@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'home',
     'rest_framework',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -134,3 +135,5 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ]
 }
+
+AUTH_USER_MODEL = "accounts.User"
