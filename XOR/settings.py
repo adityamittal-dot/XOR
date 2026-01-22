@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'home',
     'rest_framework',
     'accounts',
+    'notes',
 ]
 
 MIDDLEWARE = [
