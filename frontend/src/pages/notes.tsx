@@ -1,8 +1,14 @@
 import {useEffect, useState} from 'react';
 import {NotesAPI} from "../api/notes";
 
+interface Note {
+  id: number;
+  title:string;
+  content: string;
+}
+
 export default function Notes(){
-  const [notes, setNotes] = useState([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +39,7 @@ export default function Notes(){
     </div>
   );
 
-  async function handledDelete(id) {
+  async function handledDelete(id: number) {
     await NotesAPI.remove(id);
     setNotes((prev) => prev.filter((n) => n.id !== id));
   }
