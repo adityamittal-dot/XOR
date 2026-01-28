@@ -21,24 +21,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function refreshUser() {
-    try {
-      const me = await AuthAPI.me();
-      setUser(me);
-    } catch {
-      setUser(null);
-      clearTokens();
-    }
-  }
-
-  useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
-  }, []);
-
-  function logout() {
+  const logout = () => {
     clearTokens();
     setUser(null);
-  }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const me: User = await AuthAPI.me();
+      setUser(me);
+    } catch {
+      // token invalid / expired / backend down
+      clearTokens();
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await refreshUser();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
