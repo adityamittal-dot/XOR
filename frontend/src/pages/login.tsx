@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { setTokens } from "../auth/tokens";
+import { useAuth } from "../context/authContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,15 +31,16 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(
           data?.non_field_errors?.[0] ||
-          data?.detail ||
-          "Invalid credentials"
+            data?.detail ||
+            "Invalid credentials"
         );
       }
 
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
+      setTokens(data.access, data.refresh);
 
-      navigate("/notes", { replace: true });
+      await refreshUser();
+
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -59,9 +63,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-1">
-              Email
-            </label>
+            <label className="block text-sm text-slate-300 mb-1">Email</label>
             <input
               type="email"
               required
