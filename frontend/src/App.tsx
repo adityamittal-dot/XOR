@@ -34,6 +34,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/lab-reports"
+          element={
+            <ProtectedRoute>
+              <LabReportsPage />
+            </ProtectedRoute>
+        }
+      />
+
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
