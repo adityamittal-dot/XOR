@@ -4,6 +4,7 @@ import LoginPage from "./pages/login";
 import NotesPage from "./pages/notes";
 import DashboardPage from "./pages/dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import LabReportsPage from "./pages/lab-reports";
 
 function App() {
   return (

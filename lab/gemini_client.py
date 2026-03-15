@@ -1,28 +1,36 @@
+"""
+Gemini client module for analyzing lab reports using Google's Generative AI.
+"""
+
 import os
 import json
 import google.generativeai as genai
 
+# Configure the API key from environment variables
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def _safe_json_load(text: str) -> dict:
-  text = text.strip()
-  
-  if text.startswith("{") and text.endswith("}"):
-    try:
-      return json.loads(text)
-    except json.JSONDecodeError:
-      return {}
-    
-  start = text.find("{")
-  end = text.rfind("}")
-    
-  if start != -1 and end != -1 and end > start:
-    try:
-      return json.loads(text[start:end+1])
-    except json.JSONDecodeError:
-      return {}
-    
-  raise ValueError("Gemini did not return valid JSON.")
+    """
+    Safely extracts and loads JSON from Gemini's response string.
+    """
+    text = text.strip()
+
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return {}
+
+    start = text.find("{")
+    end = text.rfind("}")
+
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end+1])
+        except json.JSONDecodeError:
+            return {}
+
+    raise ValueError("Gemini did not return valid JSON.")
 
 def analyze_lab_report_with_gemini(extracted_text: str) -> dict:
     """
@@ -81,7 +89,7 @@ LAB REPORT TEXT:
 \"\"\"{extracted_text}\"\"\"
 """
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     res = model.generate_content(prompt)
 
-    return _safe_json_load(res.text) 
+    return _safe_json_load(res.text)

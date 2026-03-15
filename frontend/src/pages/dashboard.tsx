@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
           {/* Chat */}
           <Card className="p-4 lg:col-span-2">
-            <LabReportChat />
+            <LabReportChat reportId="some-id" fileName="report.pdf"/>
           </Card>
         </div>
       </div>

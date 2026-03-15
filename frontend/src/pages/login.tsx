@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setTokens } from "../auth/tokens";
 import { useAuth } from "../context/authContext";
+import Snowfall from "react-snowfall";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -50,6 +51,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+      <Snowfall color="#82c3D9" />
       <div className="w-full max-w-md rounded-xl bg-slate-900 p-8 shadow-xl border border-slate-800">
         <h1 className="text-2xl font-semibold text-white text-center mb-6">
           Sign in to XOR
