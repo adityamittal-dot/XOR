@@ -91,5 +91,5 @@ LAB REPORT TEXT:
 
     model = genai.GenerativeModel("gemini-2.5-flash")
     res = model.generate_content(prompt)
-
+    
     return _safe_json_load(res.text)

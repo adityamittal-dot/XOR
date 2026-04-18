@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { setTokens } from "../auth/tokens";
 import { useAuth } from "../context/authContext";
+import { AuthAPI } from "../api/auth"; // Import the API service
 import Snowfall from "react-snowfall";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -21,29 +19,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data?.non_field_errors?.[0] ||
-            data?.detail ||
-            "Invalid credentials"
-        );
-      }
-
-      setTokens(data.access, data.refresh);
+      await AuthAPI.login({ email, password });
 
       await refreshUser();
 
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      setError(err.message);
+      // apiFetch in client.ts throws error data, handle it here
+      setError(err.detail || err.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
@@ -77,9 +60,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-300 mb-1">
-              Password
-            </label>
+            <label className="block text-sm text-slate-300 mb-1">Password</label>
             <input
               type="password"
               required

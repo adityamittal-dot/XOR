@@ -10,13 +10,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ✅ Default route should go to dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Public */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Protected */}
         <Route
           path="/dashboard"
           element={
@@ -52,3 +49,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+// -> dashbaord and throughout the page same ui karna and profile section add karna h
