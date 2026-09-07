@@ -1,45 +1,55 @@
-
 services:
+  db:
+    image: postgres:17
+    container_name: xor_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-xor_db}
+      POSTGRES_USER: ${DB_USER:-xor_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-xor_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-xor_user} -d ${DB_NAME:-xor_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   web:
     build: .
     container_name: xor_web
+    restart: unless-stopped
+    # The entrypoint waits for Postgres and applies migrations before this runs.
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
+      - media_data:/app/media
     ports:
       - "8000:8000"
     env_file:
       - .env
-    depends_on:
-      - db
-
-  db:
-    image: postgres:17
-    container_name: xor_db
-    restart: always
     environment:
-      POSTGRES_DB: xor_db
-      POSTGRES_USER: xor_user
-      POSTGRES_PASSWORD: xor_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"   # optional (remove in production)
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: xor_frontend
+    restart: unless-stopped
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_BASE=http://localhost:8000
+      VITE_API_BASE: http://localhost:8000
     depends_on:
       - web
 
 volumes:
   postgres_data:
-    driver: local
+  media_data:
