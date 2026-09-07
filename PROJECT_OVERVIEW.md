@@ -21,7 +21,9 @@ The core loop:
    outside their reference range, questions to bring to a doctor, and red flags
    that warrant urgent attention.
 4. **Ask follow-up questions** in a chat grounded in that specific report.
-5. **Keep private notes** — symptoms, questions, reminders — beside the reports.
+5. **Ask general health questions** in an assistant that has your analysed
+   reports as background.
+6. **Keep private notes** — symptoms, questions, reminders — beside the reports.
 
 The guardrails are a product feature, not an afterthought. Every prompt forbids
 diagnosis, prescription and speculation beyond the document, and requires the
@@ -100,7 +102,8 @@ React + Vite SPA  ──HTTP + JWT──►  Django REST Framework
     `.txt` cannot pose as a PDF.
   - `gemini_client.py` — all Gemini access. The client is built lazily so the
     project imports, migrates and tests without an API key.
-  - `views.py` — upload, list, delete, `reanalyze`, and `chat`.
+  - `views.py` — upload, list, delete, `reanalyze`, per-report `chat`, and the
+    general `AssistantChatView` at `/api/assistant/chat/`.
 - **`home/`** — a small unauthenticated endpoint.
 
 ### Request flow for an upload
@@ -122,13 +125,19 @@ The report is always persisted, so a failure is inspectable and retryable via
 
 **Working end to end:** registration and login, JWT issue/refresh/rotation,
 notes CRUD, PDF upload with validation, text extraction, Gemini analysis,
-per-report chat, retry, deletion, ownership isolation, the admin site, Docker
-Compose, and a 32-test backend suite. The frontend typechecks, lints and builds
-clean.
+per-report chat, the general assistant chat, retry, deletion, ownership
+isolation, the admin site, Docker Compose, and a 37-test backend suite. The
+frontend typechecks, lints and builds clean.
 
-**Deliberately not built yet:** the Gmail import and the standalone chatbot page
-from Med-vault are not ported. Google OAuth sign-in is not reimplemented — XOR
-uses email and password.
+**Deliberately not built yet:** the Gmail import from Med-vault is not ported —
+`gmail.connector.tsx` is still a demo dialog. Google OAuth sign-in is not
+reimplemented; XOR uses email and password.
+
+**Branches:** `backend-XOR`, `Frontend` and `Dockerize-XOR` are fully merged
+into `main`. `medvault` and `medvault-1` are superseded — their only unique
+content was the chatbot page (now rebuilt against a real endpoint), a
+dummy-data dashboard, and files that would reintroduce `db.sqlite3`, tracked
+`.pyc` files and the Tailwind v3 config. They can be deleted.
 
 ---
 

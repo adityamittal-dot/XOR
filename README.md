@@ -105,6 +105,17 @@ A report moves through `UPLOADED → PROCESSING → READY`, or lands on `FAILED`
 with the reason stored in `ai_analysis.error`. Analysis runs inline during the
 upload request, so an upload takes as long as Gemini does.
 
+### Assistant
+
+| Method | Path                   | Purpose                                       |
+| ------ | ---------------------- | --------------------------------------------- |
+| POST   | `/api/assistant/chat/` | General health chat, grounded in your reports |
+
+Unlike the per-report chat, this is not tied to one document. Summaries of your
+five most recent `READY` reports are passed as background, so "is my hemoglobin
+low?" is answered from your own data, while anything they do not cover falls
+back to clearly-labelled general information.
+
 ## Tests
 
 ```bash

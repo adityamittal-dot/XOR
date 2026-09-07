@@ -156,6 +156,73 @@ class LabReportApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
+    def test_general_assistant_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/assistant/chat/", {"message": "hi"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_general_assistant_requires_a_message(self):
+        response = self.client.post("/api/assistant/chat/", {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("lab.views.chat_general_health", return_value="General answer.")
+    def test_general_assistant_answers_without_any_reports(self, _chat):
+        response = self.client.post(
+            "/api/assistant/chat/", {"message": "What is a normal BP?"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["reply"], "General answer.")
+        self.assertEqual(_chat.call_args.kwargs["reports_context"], "")
+
+    @patch("lab.views.chat_general_health", return_value="Grounded answer.")
+    def test_general_assistant_context_only_includes_own_ready_reports(self, _chat):
+        LabReport.objects.create(
+            user=self.user,
+            title="Mine Ready",
+            file="a.pdf",
+            status=LabReport.Status.READY,
+            ai_analysis={"summary": "hemoglobin slightly low"},
+        )
+        LabReport.objects.create(
+            user=self.user,
+            title="Mine Failed",
+            file="b.pdf",
+            status=LabReport.Status.FAILED,
+            ai_analysis={"error": "unreadable"},
+        )
+        LabReport.objects.create(
+            user=self.other,
+            title="Theirs Ready",
+            file="c.pdf",
+            status=LabReport.Status.READY,
+            ai_analysis={"summary": "someone else data"},
+        )
+
+        self.client.post(
+            "/api/assistant/chat/", {"message": "Is my hemoglobin low?"}, format="json"
+        )
+
+        context = _chat.call_args.kwargs["reports_context"]
+        self.assertIn("Mine Ready", context)
+        self.assertIn("hemoglobin slightly low", context)
+        self.assertNotIn("Mine Failed", context)
+        self.assertNotIn("Theirs Ready", context)
+        self.assertNotIn("someone else data", context)
+
+    @patch("lab.views.chat_general_health", side_effect=GeminiUnavailable("no key"))
+    def test_general_assistant_reports_outage_as_503(self, _chat):
+        response = self.client.post(
+            "/api/assistant/chat/", {"message": "hello"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
     def test_cannot_chat_about_another_users_report(self):
         report = LabReport.objects.create(
             user=self.other, title="Theirs", file="x.pdf", extracted_text="Hb 13.5"

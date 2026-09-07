@@ -1,16 +1,19 @@
 """Lab report upload, analysis and follow-up chat."""
 
+import json
 import logging
 
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from lab.gemini_client import (
     GeminiUnavailable,
     analyze_lab_report,
     chat_about_lab_report,
+    chat_general_health,
 )
 from lab.models import LabReport
 from lab.serializers import (
@@ -109,6 +112,61 @@ class LabReportViewSet(viewsets.ModelViewSet):
             )
         except GeminiUnavailable as exc:
             logger.warning("Report %s: chat failed: %s", report.pk, exc)
+            return Response(
+                {"detail": "The AI assistant is unavailable right now."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response({"reply": reply})
+
+
+class AssistantChatView(APIView):
+    """
+    General health assistant, not scoped to a single report.
+
+    Summaries of the user's own analysed reports are passed as background so
+    questions like "is my hemoglobin low?" can be answered from their data.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "lab_ai"
+
+    # How many recent reports to summarise, and how much of each to include.
+    CONTEXT_REPORT_LIMIT = 5
+    CONTEXT_CHARS_PER_REPORT = 2_000
+
+    def build_context(self, user) -> str:
+        reports = LabReport.objects.filter(
+            user=user, status=LabReport.Status.READY
+        ).order_by("-uploaded_at")[: self.CONTEXT_REPORT_LIMIT]
+
+        blocks = []
+        for report in reports:
+            analysis = report.ai_analysis or {}
+            if not isinstance(analysis, dict):
+                continue
+
+            summary = json.dumps(analysis, indent=2)[: self.CONTEXT_CHARS_PER_REPORT]
+            title = report.title or f"Report #{report.pk}"
+            blocks.append(
+                f"--- {title} (uploaded {report.uploaded_at:%Y-%m-%d}) ---\n{summary}"
+            )
+
+        return "\n\n".join(blocks)
+
+    def post(self, request):
+        serializer = LabChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+
+        try:
+            reply = chat_general_health(
+                question=payload["message"],
+                history=payload["history"],
+                reports_context=self.build_context(request.user),
+            )
+        except GeminiUnavailable as exc:
+            logger.warning("Assistant chat failed: %s", exc)
             return Response(
                 {"detail": "The AI assistant is unavailable right now."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -4,6 +4,7 @@ import LoginPage from "./pages/login";
 import NotesPage from "./pages/notes";
 import DashboardPage from "./pages/dashboard";
 import LabReportsPage from "./pages/lab-reports";
+import ChatbotPage from "./pages/chatbot";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -36,6 +37,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <LabReportsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chatbot"
+          element={
+            <ProtectedRoute>
+              <ChatbotPage />
             </ProtectedRoute>
           }
         />
