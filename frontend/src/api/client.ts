@@ -1,13 +1,46 @@
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../auth/tokens";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+} from "../auth/tokens";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
-let isRefreshing = false;
-let refreshQueue: Array<(token: string | null) => void> = [];
+export class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(status: number, data: unknown) {
+    super(messageFromPayload(data) ?? `Request failed (${status})`);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
+/** Pull a human-readable message out of a DRF error body. */
+function messageFromPayload(data: unknown): string | null {
+  if (typeof data === "string") return data;
+  if (!data || typeof data !== "object") return null;
+
+  const record = data as Record<string, unknown>;
+  const direct = record.detail ?? record.error ?? record.message;
+  if (typeof direct === "string") return direct;
+
+  // DRF field errors: { email: ["This field is required."] }
+  for (const value of Object.values(record)) {
+    if (typeof value === "string") return value;
+    if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  }
+  return null;
+}
+
+let refreshInFlight: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
   const refresh = getRefreshToken();
-  if (!refresh) throw new Error("No refresh token available");
+  if (!refresh) throw new ApiError(401, { detail: "Session expired" });
 
   const res = await fetch(`${API_BASE}/api/auth/refresh/`, {
     method: "POST",
@@ -15,98 +48,69 @@ async function refreshAccessToken(): Promise<string> {
     body: JSON.stringify({ refresh }),
   });
 
-  const data = await res.json();
-
+  const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.access) {
-    throw new Error("Refresh token invalid/expired");
+    throw new ApiError(401, { detail: "Session expired" });
   }
 
-  setTokens(data.access);
+  // ROTATE_REFRESH_TOKENS is on, so store the new refresh token when present.
+  setTokens(data.access, data.refresh);
   return data.access;
 }
 
-function processQueue(newToken: string | null) {
-  refreshQueue.forEach((cb) => cb(newToken));
-  refreshQueue = [];
+/** Share one refresh across concurrent 401s instead of stampeding the endpoint. */
+function refreshOnce(): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
-  const access = getAccessToken();
+function buildHeaders(options: RequestInit, token: string | null): Headers {
+  const headers = new Headers(options.headers);
 
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(access ? { Authorization: `Bearer ${access}` } : {}),
-    ...(options.headers || {}),
-  };
+  // Let the browser set the multipart boundary for FormData bodies.
+  if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  return headers;
+}
+
+async function parse(res: Response) {
+  if (res.status === 204) return null;
+  return res.json().catch(() => null);
+}
+
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  let res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers,
+    headers: buildHeaders(options, getAccessToken()),
   });
 
-  if (res.ok) {
-    if (res.status === 204) return null;
-    return res.json();
-  }
-
-  if (res.status === 401) {
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        refreshQueue.push(async (newToken) => {
-          if (!newToken) return reject({ detail: "Session expired" });
-
-          try {
-            const retryRes = await fetch(`${API_BASE}${path}`, {
-              ...options,
-              headers: {
-                ...headers,
-                Authorization: `Bearer ${newToken}`,
-              },
-            });
-
-            if (!retryRes.ok) {
-              const err = await retryRes.json().catch(() => ({}));
-              return reject(err);
-            }
-
-            if (retryRes.status === 204) return resolve(null);
-            resolve(await retryRes.json());
-          } catch (e) {
-            reject(e);
-          }
-        });
-      });
-    }
-
-    isRefreshing = true;
-
+  if (res.status === 401 && getRefreshToken()) {
     try {
-      const newAccess = await refreshAccessToken();
-      processQueue(newAccess);
-
-      const retryRes = await fetch(`${API_BASE}${path}`, {
+      const token = await refreshOnce();
+      res = await fetch(`${API_BASE}${path}`, {
         ...options,
-        headers: {
-          ...headers,
-          Authorization: `Bearer ${newAccess}`,
-        },
+        headers: buildHeaders(options, token),
       });
-
-      if (!retryRes.ok) {
-        const err = await retryRes.json().catch(() => ({}));
-        throw err;
-      }
-
-      if (retryRes.status === 204) return null;
-      return retryRes.json();
     } catch (err) {
       clearTokens();
-      processQueue(null);
       throw err;
-    } finally {
-      isRefreshing = false;
     }
   }
-  const errorData = await res.json().catch(() => ({}));
-  throw errorData;
+
+  if (!res.ok) {
+    if (res.status === 401) clearTokens();
+    throw new ApiError(res.status, await parse(res));
+  }
+
+  return (await parse(res)) as T;
 }

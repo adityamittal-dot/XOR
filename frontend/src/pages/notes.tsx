@@ -1,32 +1,25 @@
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { NotesAPI, type Note } from "../api/notes";
 import NoteForm from "../components/NoteForm";
 import Modal from "../components/Modal";
+import { MainLayout } from "../components/main-layout";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 
-function getErrorMessage(err: unknown) {
-  if (typeof err === "string") return err;
-
-  if (err && typeof err === "object") {
-    // common DRF / apiFetch error shapes
-    const maybeDetail = (err as { detail?: string }).detail;
-    if (maybeDetail) return maybeDetail;
-
-    const maybeMessage = (err as { message?: string }).message;
-    if (maybeMessage) return maybeMessage;
-  }
-
-  return "Something went wrong";
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 export default function Notes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Create modal
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -34,126 +27,125 @@ export default function Notes() {
   useEffect(() => {
     NotesAPI.list()
       .then(setNotes)
-      .catch((err: unknown) => {
-        console.error(err);
-        alert("Failed to load notes");
-      })
+      .catch((err) => setError(errorMessage(err, "Failed to load notes.")))
       .finally(() => setLoading(false));
   }, []);
 
   async function handleCreate(data: { title: string; content: string }) {
     setCreating(true);
+    setError(null);
     try {
-      const newNote = await NotesAPI.create(data);
-
-      // ✅ instant UI update (no refetch)
-      setNotes((prev) => [newNote, ...prev]);
-
+      const created = await NotesAPI.create(data);
+      setNotes((prev) => [created, ...prev]);
       setCreateOpen(false);
-    } catch (err: unknown) {
-      console.error(err);
-      alert(getErrorMessage(err) || "Failed to create note");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to create note."));
     } finally {
       setCreating(false);
     }
-  }
-
-  function openEdit(note: Note) {
-    setEditingNote(note);
-    setEditOpen(true);
   }
 
   async function handleUpdate(data: { title: string; content: string }) {
     if (!editingNote) return;
 
     setUpdating(true);
+    setError(null);
     try {
       const updated = await NotesAPI.update(editingNote.id, data);
-
       setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-
       setEditOpen(false);
       setEditingNote(null);
-    } catch (err: unknown) {
-      console.error(err);
-      alert(getErrorMessage(err) || "Failed to update note");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to update note."));
     } finally {
       setUpdating(false);
     }
   }
 
   async function handleDelete(id: number) {
-    const ok = confirm("Delete this note?");
-    if (!ok) return;
+    if (!confirm("Delete this note?")) return;
 
     try {
       await NotesAPI.remove(id);
       setNotes((prev) => prev.filter((n) => n.id !== id));
-    } catch (err: unknown) {
-      console.error(err);
-      alert("Failed to delete note");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to delete note."));
     }
   }
 
-  if (loading) {
-    return <div className="p-6 text-slate-200">Loading notes...</div>;
-  }
-
   return (
-    <div className="min-h-screen bg-slate-950 p-6 text-slate-100">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <MainLayout>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-semibold">Notes</h2>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
+            <p className="text-gray-500">
+              Keep symptoms, questions and reminders alongside your reports.
+            </p>
+          </div>
 
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 transition"
-          >
-            + New Note
-          </button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Note
+          </Button>
         </div>
 
-        {notes.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
-            No notes yet. Create your first note ✅
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
           </div>
+        )}
+
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : notes.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-gray-500">
+              No notes yet. Create your first note to get started.
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {notes.map((note) => (
-              <div
-                key={note.id}
-                className="rounded-xl border border-slate-800 bg-slate-900 p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h4 className="text-lg font-semibold">{note.title}</h4>
-                    <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">
-                      {note.content}
-                    </p>
-                  </div>
+              <Card key={note.id}>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold">{note.title}</h3>
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">
+                        {note.content}
+                      </p>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => openEdit(note)}
-                      className="rounded-md border border-slate-700 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800 transition"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(note.id)}
-                      className="rounded-md border border-red-500/50 px-3 py-1 text-sm text-red-300 hover:bg-red-500/10 transition"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex shrink-0 flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingNote(note);
+                          setEditOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(note.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
 
-        {/* ✅ CREATE MODAL */}
         <Modal
           title="Create Note"
           open={createOpen}
@@ -167,7 +159,6 @@ export default function Notes() {
           />
         </Modal>
 
-        {/* ✅ EDIT MODAL */}
         <Modal
           title="Edit Note"
           open={editOpen}
@@ -191,6 +182,6 @@ export default function Notes() {
           )}
         </Modal>
       </div>
-    </div>
+    </MainLayout>
   );
 }

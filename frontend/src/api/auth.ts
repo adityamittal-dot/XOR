@@ -1,19 +1,38 @@
 import { apiFetch } from "./client";
-import { setTokens } from "../auth/tokens";
+import { clearTokens, setTokens } from "../auth/tokens";
+
+export type User = {
+  id: number;
+  email: string;
+  created_at?: string;
+};
+
+type Credentials = { email: string; password: string };
+type AuthResponse = { user: User; access: string; refresh: string };
+
+async function authenticate(path: string, credentials: Credentials) {
+  const data = await apiFetch<AuthResponse>(path, {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+  setTokens(data.access, data.refresh);
+  return data;
+}
 
 export const AuthAPI = {
-  async login(credentials: { email: string; password?: string }) {
-    const data = await apiFetch("/api/auth/login/", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-    if (data.access && data.refresh) {
-      setTokens(data.access, data.refresh);
-    }
-    return data;
+  login(credentials: Credentials) {
+    return authenticate("/api/auth/login/", credentials);
+  },
+
+  register(credentials: Credentials) {
+    return authenticate("/api/auth/register/", credentials);
   },
 
   me() {
-    return apiFetch("/api/auth/me/");
+    return apiFetch<User>("/api/auth/me/");
+  },
+
+  logout() {
+    clearTokens();
   },
 };

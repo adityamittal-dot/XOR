@@ -1,56 +1,82 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { AuthAPI } from "../api/auth";
-import { clearTokens } from "../auth/tokens";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { AuthAPI, type User } from "../api/auth";
+import { clearTokens, getAccessToken, getRefreshToken } from "../auth/tokens";
 
-type User = {
-  id: number;
-  email: string;
-  created_at?: string;
-};
+type Credentials = { email: string; password: string };
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  login: (credentials: Credentials) => Promise<void>;
+  register: (credentials: Credentials) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Only block the UI on startup when there is actually a session to restore.
+  const [loading, setLoading] = useState(
+    () => Boolean(getAccessToken() || getRefreshToken())
+  );
 
-  const logout = () => {
-    clearTokens();
+  const logout = useCallback(() => {
+    AuthAPI.logout();
     setUser(null);
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      const me: User = await AuthAPI.me();
-      setUser(me);
+      setUser(await AuthAPI.me());
     } catch {
-      // token invalid / expired / backend down
       clearTokens();
       setUser(null);
     }
-  };
+  }, []);
+
+  const login = useCallback(async (credentials: Credentials) => {
+    setUser((await AuthAPI.login(credentials)).user);
+  }, []);
+
+  const register = useCallback(async (credentials: Credentials) => {
+    setUser((await AuthAPI.register(credentials)).user);
+  }, []);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        await refreshUser();
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!getAccessToken() && !getRefreshToken()) return;
 
-    init();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const me = await AuthAPI.me();
+        if (!cancelled) setUser(me);
+      } catch {
+        clearTokens();
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

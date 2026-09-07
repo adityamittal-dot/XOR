@@ -1,17 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import LoginPage from "./pages/login";
 import NotesPage from "./pages/notes";
 import DashboardPage from "./pages/dashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
 import LabReportsPage from "./pages/lab-reports";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
         <Route path="/login" element={<LoginPage />} />
 
         <Route
@@ -38,19 +37,11 @@ function App() {
             <ProtectedRoute>
               <LabReportsPage />
             </ProtectedRoute>
-        }
-      />
+          }
+        />
 
-        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
-
-
-
-
-// -> dashbaord and throughout the page same ui karna and profile section add karna h
