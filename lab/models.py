@@ -35,5 +35,9 @@ class LabReport(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ["-uploaded_at"]
+        indexes = [models.Index(fields=["user", "-uploaded_at"])]
+
     def __str__(self):
         return f"{self.user.email} - {self.title or self.file.name}"

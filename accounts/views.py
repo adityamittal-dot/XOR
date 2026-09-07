@@ -1,10 +1,15 @@
-from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, LoginSerializer, UserMeSerializer
+from .serializers import LoginSerializer, RegisterSerializer, UserMeSerializer
+
+
+def tokens_for(user) -> dict:
+    refresh = RefreshToken.for_user(user)
+    return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
 class RegisterView(APIView):
@@ -13,30 +18,27 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message": "User registered successfully"})
+        user = serializer.save()
+
+        return Response(
+            {"user": UserMeSerializer(user).data, **tokens_for(user)},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data
+        user = serializer.validated_data["user"]
 
-        refresh = RefreshToken.for_user(user)
+        return Response({"user": UserMeSerializer(user).data, **tokens_for(user)})
 
-        return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            }
-        )
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserMeSerializer(request.user)
-        return Response(serializer.data)
+        return Response(UserMeSerializer(request.user).data)
