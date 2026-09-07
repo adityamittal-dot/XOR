@@ -1,16 +1,47 @@
-import { MainLayout } from "./components/main-layout";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+
+import LoginPage from "./pages/login";
+import NotesPage from "./pages/notes";
+import DashboardPage from "./pages/dashboard";
+import LabReportsPage from "./pages/lab-reports";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
-    <MainLayout>
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h1 className="text-xl font-semibold">
-          Dashboard Content
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Main layout is working correctly.
-        </p>
-      </div>
-    </MainLayout>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notes"
+          element={
+            <ProtectedRoute>
+              <NotesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/lab-reports"
+          element={
+            <ProtectedRoute>
+              <LabReportsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

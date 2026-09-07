@@ -14,7 +14,7 @@ type AppSidebarProps = {
 };
 
 const menuItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Lab Reports", icon: FileText, path: "/lab-reports" },
   { label: "AI Chatbot", icon: MessageSquare, path: "/chatbot" },
   { label: "Notes", icon: StickyNote, path: "/notes" },

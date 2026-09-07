@@ -1,6 +1,26 @@
-.env
-node_modules/
+# Python
 __pycache__/
+*.py[cod]
+*.egg-info/
 venv/
+.venv/
+
+# Django
 db.sqlite3
-.DS_store
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+dist/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
