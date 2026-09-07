@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { path: "/dashboard", label: "Home" },
   { path: "/lab-reports", label: "Lab Reports" },
   { path: "/notes", label: "Notes" },
+  { path: "/chatbot", label: "Assistant" },
 ];
 
 export function MainLayout({ children }: MainLayoutProps) {

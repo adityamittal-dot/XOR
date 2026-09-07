@@ -144,6 +144,15 @@ LAB REPORT TEXT:
     return _safe_json_load(_generate(prompt, as_json=True))
 
 
+def _format_history(history: list) -> str:
+    """Render prior turns for the prompt, ignoring malformed entries."""
+    return "\n".join(
+        f"{turn.get('role', 'user').upper()}: {turn.get('content', '')}"
+        for turn in history
+        if isinstance(turn, dict) and turn.get("content")
+    )
+
+
 def chat_about_lab_report(
     extracted_text: str,
     analysis: dict | None,
@@ -154,12 +163,7 @@ def chat_about_lab_report(
     if not question or not question.strip():
         raise ValueError("A question is required.")
 
-    conversation = "\n".join(
-        f"{turn.get('role', 'user').upper()}: {turn.get('content', '')}"
-        for turn in history
-        if isinstance(turn, dict) and turn.get("content")
-    )
-
+    conversation = _format_history(history)
     summary = json.dumps(analysis, indent=2)[:5_000] if analysis else ""
 
     prompt = f"""
@@ -185,6 +189,52 @@ FORMATTING:
 === END CONVERSATION ===
 
 PATIENT'S QUESTION:
+{question}
+"""
+
+    return _generate(prompt, as_json=False).strip()
+
+
+def chat_general_health(
+    question: str,
+    history: list,
+    reports_context: str = "",
+) -> str:
+    """
+    Answer a general health question.
+
+    Unlike chat_about_lab_report this is not tied to one document, so it is
+    given short summaries of the user's analysed reports as background and is
+    told to fall back to general information when they do not cover the question.
+    """
+    if not question or not question.strip():
+        raise ValueError("A question is required.")
+
+    prompt = f"""
+You are a polite, careful health assistant in a personal health dashboard.
+Answer the user's question clearly and in simple language.
+{SAFETY_RULES}
+USING THE BACKGROUND:
+- The user's own report summaries may appear below. Prefer them when the
+  question is about the user's own results, and cite the values you rely on.
+- If the background does not cover the question, answer with general health
+  information and say plainly that it is general, not based on their reports.
+- Never invent a value that is not in the background.
+
+FORMATTING:
+- Plain text only. No markdown, asterisks, hashes or backticks.
+- Short paragraphs and simple bullet lines.
+- End by reminding them to confirm with their healthcare provider.
+
+=== THE USER'S REPORT SUMMARIES ===
+{reports_context or "This user has no analysed reports yet."}
+=== END SUMMARIES ===
+
+=== RECENT CONVERSATION ===
+{_format_history(history) or "No earlier messages."}
+=== END CONVERSATION ===
+
+USER'S QUESTION:
 {question}
 """
 
