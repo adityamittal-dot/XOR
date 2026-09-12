@@ -23,8 +23,8 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   const activePath = location.pathname;
 
-  function handleSignOut() {
-    logout();
+  async function handleSignOut() {
+    await logout();
     navigate("/login", { replace: true });
   }
 

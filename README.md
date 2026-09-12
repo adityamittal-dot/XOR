@@ -1,10 +1,12 @@
-# XOR
+# MedVault
+
+*(repository codename: `XOR`)*
 
 A personal health vault. Upload a lab report PDF, get a plain-language
 explanation of what the numbers mean, ask follow-up questions about it, and keep
 private notes alongside it.
 
-XOR is the Django rewrite of [Med-vault](https://github.com/adityamittal-dot/Med-vault),
+MedVault is the Django rewrite of [Med-vault](https://github.com/adityamittal-dot/Med-vault),
 a Next.js prototype that ran entirely on Supabase. The product is the same; the
 backend is now a real API that owns its own auth, database and AI pipeline.
 
@@ -74,17 +76,22 @@ All settings come from the environment; see `.env.example` for the full list.
 
 ## API
 
-All endpoints except `register`, `login`, `refresh` and `user-quote` require
+All endpoints except `register`, `login` and `refresh` require
 `Authorization: Bearer <access token>`.
 
 ### Auth
 
-| Method | Path                  | Purpose                                |
-| ------ | --------------------- | -------------------------------------- |
+| Method | Path                  | Purpose                                  |
+| ------ | --------------------- | ----------------------------------------- |
 | POST   | `/api/auth/register/` | Create an account, returns user + tokens |
-| POST   | `/api/auth/login/`    | Returns user + tokens                   |
-| POST   | `/api/auth/refresh/`  | Exchange a refresh token                |
-| GET    | `/api/auth/me/`       | Current user                            |
+| POST   | `/api/auth/login/`    | Returns user + tokens                    |
+| POST   | `/api/auth/refresh/`  | Exchange a refresh token                 |
+| POST   | `/api/auth/logout/`   | Blacklist the refresh token              |
+| GET    | `/api/auth/me/`       | Current user                             |
+
+Refresh tokens rotate on every use and are blacklisted on logout (SimpleJWT's
+`token_blacklist` app), so a token that has been refreshed or logged out
+cannot be replayed.
 
 ### Notes
 
@@ -119,7 +126,7 @@ back to clearly-labelled general information.
 ## Tests
 
 ```bash
-python manage.py test        # 32 backend tests
+python manage.py test        # 40 backend tests
 cd frontend && yarn lint && yarn typecheck && yarn build
 ```
 
@@ -132,7 +139,7 @@ accounts/   custom email-based user, JWT auth endpoints
 notes/      per-user notes CRUD
 lab/        PDF upload, text extraction, Gemini analysis and chat
 home/       small unauthenticated endpoint
-XOR/        settings, root URLs, WSGI/ASGI
+XOR/        Django project package - settings, root URLs, WSGI/ASGI
 frontend/   React + Vite client
 ```
 

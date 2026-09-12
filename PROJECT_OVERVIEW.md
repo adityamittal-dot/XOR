@@ -1,4 +1,6 @@
-# XOR — Project Overview
+# MedVault — Project Overview
+
+*(repository codename: `XOR`)*
 
 Everything about what this project is, how it got here, how it is put together,
 and what is worth building next. Read `README.md` first if you just want to run it.
@@ -7,9 +9,9 @@ and what is worth building next. Read `README.md` first if you just want to run 
 
 ## 1. What the product is
 
-XOR is a **personal health vault**. A patient gets a lab report PDF from a
+MedVault is a **personal health vault**. A patient gets a lab report PDF from a
 pathology lab and it is nearly unreadable: dozens of acronyms, numbers and
-reference ranges, no explanation. XOR turns that into something a person can
+reference ranges, no explanation. MedVault turns that into something a person can
 actually act on.
 
 The core loop:
@@ -51,12 +53,12 @@ It works, but the architecture is a dead end for this product. Business logic
 lives in route handlers, auth and data are rented from Supabase, and the AI
 pipeline cannot be tested, retried, or moved off the request path.
 
-### XOR — the real build
+### MedVault — the real build
 
-XOR is the same product rebuilt on **Django + DRF**, owning the parts that
+MedVault is the same product rebuilt on **Django + DRF**, owning the parts that
 matter:
 
-| Concern     | Med-vault                | XOR                                           |
+| Concern     | Med-vault                | MedVault                                      |
 | ----------- | ------------------------ | --------------------------------------------- |
 | Auth        | Supabase Google OAuth    | Custom email user model + JWT (SimpleJWT)     |
 | Database    | Supabase Postgres + RLS  | Own Postgres, ownership enforced in querysets |
@@ -68,7 +70,7 @@ matter:
 | Deployment  | Vercel                   | Docker Compose, Gunicorn, Postgres            |
 
 The frontend components were carried over from Med-vault and rewired from
-Supabase calls to XOR's API.
+Supabase calls to MedVault's API.
 
 **Why this migration is worth it:** the data is medical, so ownership checks,
 retention and audit belong in code you control, not in vendor policies. The
@@ -123,15 +125,15 @@ The report is always persisted, so a failure is inspectable and retryable via
 
 ## 4. State of the migration
 
-**Working end to end:** registration and login, JWT issue/refresh/rotation,
-notes CRUD, PDF upload with validation, text extraction, Gemini analysis,
-per-report chat, the general assistant chat, retry, deletion, ownership
-isolation, the admin site, Docker Compose, and a 37-test backend suite. The
-frontend typechecks, lints and builds clean.
+**Working end to end:** registration, login and logout, JWT issue/refresh/
+rotation with blacklisting, notes CRUD, PDF upload with validation, text
+extraction, Gemini analysis, per-report chat, the general assistant chat,
+retry, deletion, ownership isolation, the admin site, Docker Compose, and a
+40-test backend suite. The frontend typechecks, lints and builds clean.
 
 **Deliberately not built yet:** the Gmail import from Med-vault is not ported —
 `gmail.connector.tsx` is still a demo dialog. Google OAuth sign-in is not
-reimplemented; XOR uses email and password.
+reimplemented; MedVault uses email and password.
 
 **Branches:** `backend-XOR`, `Frontend` and `Dockerize-XOR` are fully merged
 into `main`. `medvault` and `medvault-1` are superseded — their only unique
@@ -176,9 +178,10 @@ The data is medical, so this deserves real attention:
   malicious PDF.
 - **Token storage.** JWTs live in `localStorage`, which is XSS-readable. Refresh
   tokens in an HttpOnly cookie would be materially safer.
-- **Blacklist refresh tokens on logout.** Rotation is on, but logout currently
-  only clears the browser; adding SimpleJWT's blacklist app would kill a stolen
-  refresh token server-side.
+- ~~**Blacklist refresh tokens on logout.**~~ Done — `POST /api/auth/logout/`
+  blacklists the refresh token via SimpleJWT's `token_blacklist` app, and
+  rotation blacklists the previous token automatically
+  (`BLACKLIST_AFTER_ROTATION`).
 
 ### 5.3 Make the AI layer trustworthy
 

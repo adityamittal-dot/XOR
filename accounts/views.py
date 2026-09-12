@@ -2,9 +2,15 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, RegisterSerializer, UserMeSerializer
+from .serializers import (
+    LoginSerializer,
+    LogoutSerializer,
+    RegisterSerializer,
+    UserMeSerializer,
+)
 
 
 def tokens_for(user) -> dict:
@@ -42,3 +48,20 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserMeSerializer(request.user).data)
+
+
+class LogoutView(APIView):
+    """Blacklist the refresh token so a stolen one cannot be reused after logout."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            RefreshToken(serializer.validated_data["refresh"]).blacklist()
+        except TokenError:
+            pass
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)

@@ -56,3 +56,7 @@ class UserMeSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "email", "created_at")
         read_only_fields = fields
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()

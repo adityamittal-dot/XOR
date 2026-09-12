@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import { clearTokens, setTokens } from "../auth/tokens";
+import { clearTokens, getRefreshToken, setTokens } from "../auth/tokens";
 
 export type User = {
   id: number;
@@ -32,7 +32,22 @@ export const AuthAPI = {
     return apiFetch<User>("/api/auth/me/");
   },
 
-  logout() {
+  async logout() {
+    const refresh = getRefreshToken();
+
+    // Blacklist the refresh token server-side before clearing local state —
+    // the request needs the (still-present) access token to authenticate.
+    if (refresh) {
+      try {
+        await apiFetch("/api/auth/logout/", {
+          method: "POST",
+          body: JSON.stringify({ refresh }),
+        });
+      } catch {
+        // Best-effort — logout must not block on the network.
+      }
+    }
+
     clearTokens();
   },
 };

@@ -72,6 +72,36 @@ class LoginTests(APITestCase):
         self.assertEqual(response.data["email"], "user@example.com")
 
 
+class LogoutTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="user@example.com", password="s3cure-pass-42"
+        )
+
+    def test_logout_blacklists_refresh_token(self):
+        login = self.client.post(
+            "/api/auth/login/",
+            {"email": "user@example.com", "password": "s3cure-pass-42"},
+        )
+        refresh = login.data["refresh"]
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post("/api/auth/logout/", {"refresh": refresh})
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+        retry = self.client.post("/api/auth/refresh/", {"refresh": refresh})
+        self.assertEqual(retry.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_requires_authentication(self):
+        response = self.client.post("/api/auth/logout/", {"refresh": "anything"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_with_invalid_token_still_succeeds(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post("/api/auth/logout/", {"refresh": "not-a-real-token"})
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+
 class UserModelTests(APITestCase):
     def test_create_superuser(self):
         admin = User.objects.create_superuser(

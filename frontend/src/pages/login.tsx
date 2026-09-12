@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
         <h1 className="mb-6 text-center text-2xl font-semibold text-white">
-          {isRegister ? "Create your XOR account" : "Sign in to XOR"}
+          {isRegister ? "Create your MedVault account" : "Sign in to MedVault"}
         </h1>
 
         {error && (

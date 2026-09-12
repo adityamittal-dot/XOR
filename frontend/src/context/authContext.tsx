@@ -16,7 +16,7 @@ type AuthContextType = {
   loading: boolean;
   login: (credentials: Credentials) => Promise<void>;
   register: (credentials: Credentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => Boolean(getAccessToken() || getRefreshToken())
   );
 
-  const logout = useCallback(() => {
-    AuthAPI.logout();
+  const logout = useCallback(async () => {
+    await AuthAPI.logout();
     setUser(null);
   }, []);
 
