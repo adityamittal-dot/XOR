@@ -59,7 +59,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           <div className="ml-auto">
             <UserMenu
-              user={user}
+              user={user ? { email: user.email, avatarUrl: user.avatar_url } : null}
               loading={loading}
               onSignIn={() => navigate("/login")}
               onSignOut={handleSignOut}

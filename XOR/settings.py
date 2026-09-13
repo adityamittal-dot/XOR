@@ -235,6 +235,11 @@ SIMPLE_JWT = {
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
+# "Sign in with Google" - verifies ID tokens against this OAuth client ID.
+# Without it, /api/auth/google/ responds 503 rather than accepting tokens
+# meant for a different app.
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+
 
 # Security - enabled automatically once DEBUG is off.
 

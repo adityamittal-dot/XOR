@@ -128,12 +128,12 @@ The report is always persisted, so a failure is inspectable and retryable via
 **Working end to end:** registration, login and logout, JWT issue/refresh/
 rotation with blacklisting, notes CRUD, PDF upload with validation, text
 extraction, Gemini analysis, per-report chat, the general assistant chat,
-retry, deletion, ownership isolation, the admin site, Docker Compose, and a
-40-test backend suite. The frontend typechecks, lints and builds clean.
+retry, deletion, ownership isolation, the admin site, Docker Compose, Google
+sign-in, and a 47-test backend suite. The frontend typechecks, lints and
+builds clean.
 
 **Deliberately not built yet:** the Gmail import from Med-vault is not ported —
-`gmail.connector.tsx` is still a demo dialog. Google OAuth sign-in is not
-reimplemented; MedVault uses email and password.
+`gmail.connector.tsx` is still a demo dialog.
 
 **Branches:** `backend-XOR`, `Frontend` and `Dockerize-XOR` are fully merged
 into `main`. `medvault` and `medvault-1` are superseded — their only unique

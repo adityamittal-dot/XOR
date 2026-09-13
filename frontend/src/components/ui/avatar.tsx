@@ -18,10 +18,21 @@ export function Avatar({ className, ...props }: AvatarProps) {
 export type AvatarImageProps =
   React.ImgHTMLAttributes<HTMLImageElement>;
 
-export function AvatarImage({ className, ...props }: AvatarImageProps) {
+export function AvatarImage({ className, src, onError, ...props }: AvatarImageProps) {
+  const [failed, setFailed] = React.useState(false);
+
+  // Renders nothing (rather than a broken-image icon) when there's no src
+  // or it failed to load, so AvatarFallback shows through instead.
+  if (!src || failed) return null;
+
   return (
     <img
-      className={cn("h-full w-full object-cover", className)}
+      src={src}
+      className={cn("absolute inset-0 h-full w-full object-cover", className)}
+      onError={(event) => {
+        setFailed(true);
+        onError?.(event);
+      }}
       {...props}
     />
   );

@@ -54,9 +54,13 @@ class LoginSerializer(serializers.Serializer):
 class UserMeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "created_at")
+        fields = ("id", "email", "avatar_url", "created_at")
         read_only_fields = fields
 
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
+
+
+class GoogleLoginSerializer(serializers.Serializer):
+    credential = serializers.CharField()

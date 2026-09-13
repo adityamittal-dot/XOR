@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -100,6 +103,69 @@ class LogoutTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.post("/api/auth/logout/", {"refresh": "not-a-real-token"})
         self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+
+@override_settings(GOOGLE_CLIENT_ID="test-client-id")
+class GoogleLoginTests(APITestCase):
+    url = "/api/auth/google/"
+
+    @patch("accounts.views.google_id_token.verify_oauth2_token")
+    def test_creates_a_new_account_from_a_verified_token(self, verify):
+        verify.return_value = {
+            "email": "new@example.com",
+            "email_verified": True,
+            "picture": "https://example.com/photo.jpg",
+        }
+
+        response = self.client.post(self.url, {"credential": "fake-jwt"})
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("access", response.data)
+        user = User.objects.get(email="new@example.com")
+        self.assertEqual(user.avatar_url, "https://example.com/photo.jpg")
+        self.assertFalse(user.has_usable_password())
+
+    @patch("accounts.views.google_id_token.verify_oauth2_token")
+    def test_signs_in_an_existing_account_by_email(self, verify):
+        User.objects.create_user(email="existing@example.com", password="s3cure-pass-42")
+        verify.return_value = {
+            "email": "existing@example.com",
+            "email_verified": True,
+            "picture": "https://example.com/new-photo.jpg",
+        }
+
+        response = self.client.post(self.url, {"credential": "fake-jwt"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(User.objects.count(), 1)
+        user = User.objects.get(email="existing@example.com")
+        self.assertEqual(user.avatar_url, "https://example.com/new-photo.jpg")
+
+    @patch("accounts.views.google_id_token.verify_oauth2_token")
+    def test_rejects_an_unverified_email(self, verify):
+        verify.return_value = {"email": "new@example.com", "email_verified": False}
+
+        response = self.client.post(self.url, {"credential": "fake-jwt"})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertFalse(User.objects.exists())
+
+    @patch("accounts.views.google_id_token.verify_oauth2_token", side_effect=ValueError("bad token"))
+    def test_rejects_an_invalid_token(self, _verify):
+        response = self.client.post(self.url, {"credential": "not-a-real-jwt"})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @override_settings(GOOGLE_CLIENT_ID="")
+    def test_returns_503_when_not_configured(self):
+        response = self.client.post(self.url, {"credential": "fake-jwt"})
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    def test_requires_a_credential(self):
+        response = self.client.post(self.url, {})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class UserModelTests(APITestCase):

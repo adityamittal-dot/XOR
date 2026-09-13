@@ -75,10 +75,11 @@ All settings come from the environment; see `.env.example` for the full list.
 | `MAX_UPLOAD_SIZE_BYTES`| Upload ceiling, default 10 MB.                             |
 | `S3_BUCKET_NAME`       | Set to store uploads in an S3-compatible bucket instead of local disk — needed on hosts with an ephemeral filesystem. Leave empty for local disk. |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_ENDPOINT_URL` / `S3_REGION_NAME` | Required alongside `S3_BUCKET_NAME`. Works with [Backblaze B2](https://www.backblaze.com/cloud-storage) (free, no card required), Cloudflare R2, AWS S3, or MinIO. |
+| `GOOGLE_CLIENT_ID`     | Enables "Sign in with Google". Without it, `/api/auth/google/` responds `503`. Must match the frontend's `VITE_GOOGLE_CLIENT_ID` — see [Setting up Google sign-in](#setting-up-google-sign-in). |
 
 ## API
 
-All endpoints except `register`, `login` and `refresh` require
+All endpoints except `register`, `login`, `google` and `refresh` require
 `Authorization: Bearer <access token>`.
 
 ### Auth
@@ -87,6 +88,7 @@ All endpoints except `register`, `login` and `refresh` require
 | ------ | --------------------- | ----------------------------------------- |
 | POST   | `/api/auth/register/` | Create an account, returns user + tokens |
 | POST   | `/api/auth/login/`    | Returns user + tokens                    |
+| POST   | `/api/auth/google/`   | Sign in (or auto-register) with a Google ID token, returns user + tokens |
 | POST   | `/api/auth/refresh/`  | Exchange a refresh token                 |
 | POST   | `/api/auth/logout/`   | Blacklist the refresh token              |
 | GET    | `/api/auth/me/`       | Current user                             |
@@ -125,14 +127,32 @@ five most recent `READY` reports are passed as background, so "is my hemoglobin
 low?" is answered from your own data, while anything they do not cover falls
 back to clearly-labelled general information.
 
+## Setting up Google sign-in
+
+Optional — the app works fine without it, email/password only.
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) →
+   **Create Credentials** → **OAuth client ID** → type **Web application**.
+2. Under **Authorized JavaScript origins**, add every origin the frontend is
+   served from (e.g. `http://localhost:5173` for local dev, and your deployed
+   frontend's URL). No redirect URI is needed — Google Identity Services
+   returns a credential directly to the page.
+3. Copy the generated **Client ID** into both:
+   - `GOOGLE_CLIENT_ID` on the backend
+   - `VITE_GOOGLE_CLIENT_ID` on the frontend (must be the exact same value)
+4. Leave either unset to keep the feature off — the button simply doesn't
+   render, and the backend endpoint responds `503` rather than accepting
+   tokens meant for a different app.
+
 ## Tests
 
 ```bash
-python manage.py test        # 40 backend tests
+python manage.py test        # 47 backend tests
 cd frontend && yarn lint && yarn typecheck && yarn build
 ```
 
-The AI and PDF layers are mocked in tests, so no API key or network is needed.
+The AI, PDF and Google token verification layers are all mocked in tests, so
+no API key, network access, or real Google credential is needed.
 
 ## Project layout
 

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Snowfall from "react-snowfall";
 import { useAuth } from "../context/authContext";
+import { GoogleSignInButton } from "../components/google-sign-in-button";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -37,6 +38,26 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  const handleGoogleCredential = useCallback(
+    async (credential: string) => {
+      setError(null);
+      setLoading(true);
+      try {
+        await loginWithGoogle(credential);
+        navigate("/dashboard", { replace: true });
+      } catch (err) {
+        setError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Google sign-in failed. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loginWithGoogle, navigate]
+  );
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
@@ -101,6 +122,18 @@ export default function LoginPage() {
                 : "Sign In"}
           </button>
         </form>
+
+        {Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID) && (
+          <>
+            <div className="my-6 flex items-center gap-3 text-xs text-slate-500">
+              <div className="h-px flex-1 bg-slate-800" />
+              <span>OR</span>
+              <div className="h-px flex-1 bg-slate-800" />
+            </div>
+
+            <GoogleSignInButton onCredential={handleGoogleCredential} />
+          </>
+        )}
 
         <p className="mt-6 text-center text-sm text-slate-400">
           {isRegister ? "Already have an account?" : "New here?"}{" "}

@@ -16,6 +16,7 @@ type AuthContextType = {
   loading: boolean;
   login: (credentials: Credentials) => Promise<void>;
   register: (credentials: Credentials) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -51,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((await AuthAPI.register(credentials)).user);
   }, []);
 
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    setUser((await AuthAPI.google(credential)).user);
+  }, []);
+
   useEffect(() => {
     if (!getAccessToken() && !getRefreshToken()) return;
 
@@ -75,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshUser }}
+      value={{ user, loading, login, register, loginWithGoogle, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

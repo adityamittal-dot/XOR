@@ -4,6 +4,7 @@ import { clearTokens, getRefreshToken, setTokens } from "../auth/tokens";
 export type User = {
   id: number;
   email: string;
+  avatar_url?: string;
   created_at?: string;
 };
 
@@ -19,6 +20,15 @@ async function authenticate(path: string, credentials: Credentials) {
   return data;
 }
 
+async function googleLogin(credential: string) {
+  const data = await apiFetch<AuthResponse>("/api/auth/google/", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
+  });
+  setTokens(data.access, data.refresh);
+  return data;
+}
+
 export const AuthAPI = {
   login(credentials: Credentials) {
     return authenticate("/api/auth/login/", credentials);
@@ -27,6 +37,8 @@ export const AuthAPI = {
   register(credentials: Credentials) {
     return authenticate("/api/auth/register/", credentials);
   },
+
+  google: googleLogin,
 
   me() {
     return apiFetch<User>("/api/auth/me/");

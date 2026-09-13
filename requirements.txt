@@ -9,6 +9,11 @@ djangorestframework==3.16.1
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 
+# Google ID token verification for "Sign in with Google". Already pulled in
+# transitively by google-genai, but pinned explicitly since we import it
+# directly now and shouldn't depend on another package's dependency choices.
+google-auth==2.58.0
+
 # Database (psycopg3 - psycopg2-binary ships no wheels for Python 3.13+)
 psycopg[binary]==3.2.12
 
