@@ -47,6 +47,13 @@ class LabReportViewSet(viewsets.ModelViewSet):
             return super().get_throttles()
         return []
 
+    def perform_destroy(self, instance):
+        # The default ModelViewSet.destroy() only removes the database row,
+        # which would silently orphan the file in storage on every deletion.
+        if instance.file:
+            instance.file.delete(save=False)
+        instance.delete()
+
     def perform_create(self, serializer):
         report = serializer.save(
             user=self.request.user, status=LabReport.Status.PROCESSING

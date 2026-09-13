@@ -121,6 +121,20 @@ class LabReportApiTests(APITestCase):
 
         self.assertEqual([r["title"] for r in response.data], ["Mine"])
 
+    def test_deleting_a_report_removes_its_stored_file(self):
+        report = LabReport.objects.create(
+            user=self.user, title="Mine", file=pdf_upload()
+        )
+        stored_name = report.file.name
+        storage = report.file.storage
+
+        self.assertTrue(storage.exists(stored_name))
+
+        response = self.client.delete(f"/api/lab-reports/{report.pk}/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(storage.exists(stored_name))
+
     @patch("lab.views.chat_about_lab_report", return_value="Hello, here is the answer.")
     def test_chat_returns_reply(self, _chat):
         report = LabReport.objects.create(
