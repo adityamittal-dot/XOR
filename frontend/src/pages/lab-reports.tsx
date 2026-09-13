@@ -7,6 +7,7 @@ import { Skeleton } from "../components/ui/skeleton";
 import { MainLayout } from "../components/main-layout";
 import { LabReportUpload } from "../components/lab-report-upload";
 import { LabReportChat } from "../components/lab-report-chat";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import { LabAPI, type LabReport, type LabReportStatus } from "../api/lab";
 
 const STATUS_STYLES: Record<LabReportStatus, string> = {
@@ -29,6 +30,8 @@ export default function LabReportsPage() {
   const [selected, setSelected] = useState<LabReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingReport, setDeletingReport] = useState<LabReport | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -57,12 +60,20 @@ export default function LabReportsPage() {
     setSelected((current) => (current?.id === updated.id ? updated : current));
   }
 
-  async function handleDelete(report: LabReport) {
-    if (!confirm(`Delete "${report.title || "this report"}"?`)) return;
+  async function handleDelete() {
+    if (!deletingReport) return;
 
-    await LabAPI.remove(report.id);
-    setReports((prev) => prev.filter((r) => r.id !== report.id));
-    setSelected((current) => (current?.id === report.id ? null : current));
+    setDeleting(true);
+    try {
+      await LabAPI.remove(deletingReport.id);
+      setReports((prev) => prev.filter((r) => r.id !== deletingReport.id));
+      setSelected((current) => (current?.id === deletingReport.id ? null : current));
+      setDeletingReport(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete report.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -150,7 +161,7 @@ export default function LabReportsPage() {
                           title="Delete report"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(report);
+                            setDeletingReport(report);
                           }}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
@@ -178,6 +189,19 @@ export default function LabReportsPage() {
             )}
           </div>
         </div>
+
+        <ConfirmDialog
+          open={deletingReport !== null}
+          title="Delete this report?"
+          description={
+            deletingReport
+              ? `"${deletingReport.title || `Report #${deletingReport.id}`}" will be permanently deleted.`
+              : undefined
+          }
+          loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingReport(null)}
+        />
       </div>
     </MainLayout>
   );

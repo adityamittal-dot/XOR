@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { NotesAPI, type Note } from "../api/notes";
 import NoteForm from "../components/NoteForm";
-import Modal from "../components/Modal";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import { MainLayout } from "../components/main-layout";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
@@ -23,6 +24,9 @@ export default function Notes() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [updating, setUpdating] = useState(false);
+
+  const [deletingNote, setDeletingNote] = useState<Note | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     NotesAPI.list()
@@ -62,14 +66,18 @@ export default function Notes() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Delete this note?")) return;
+  async function handleDelete() {
+    if (!deletingNote) return;
 
+    setDeleting(true);
     try {
-      await NotesAPI.remove(id);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
+      await NotesAPI.remove(deletingNote.id);
+      setNotes((prev) => prev.filter((n) => n.id !== deletingNote.id));
+      setDeletingNote(null);
     } catch (err) {
       setError(errorMessage(err, "Failed to delete note."));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -134,7 +142,7 @@ export default function Notes() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDelete(note.id)}
+                        onClick={() => setDeletingNote(note)}
                       >
                         Delete
                       </Button>
@@ -146,41 +154,60 @@ export default function Notes() {
           </div>
         )}
 
-        <Modal
-          title="Create Note"
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-        >
-          <NoteForm
-            submitLabel="Create"
-            loading={creating}
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-          />
-        </Modal>
+        <Dialog open={createOpen} onOpenChange={(next) => !next && setCreateOpen(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Note</DialogTitle>
+            </DialogHeader>
+            <NoteForm
+              submitLabel="Create"
+              loading={creating}
+              onSubmit={handleCreate}
+              onCancel={() => setCreateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
 
-        <Modal
-          title="Edit Note"
+        <Dialog
           open={editOpen}
-          onClose={() => {
+          onOpenChange={(next) => {
+            if (next) return;
             setEditOpen(false);
             setEditingNote(null);
           }}
         >
-          {editingNote && (
-            <NoteForm
-              initialTitle={editingNote.title}
-              initialContent={editingNote.content}
-              submitLabel="Update"
-              loading={updating}
-              onSubmit={handleUpdate}
-              onCancel={() => {
-                setEditOpen(false);
-                setEditingNote(null);
-              }}
-            />
-          )}
-        </Modal>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Note</DialogTitle>
+            </DialogHeader>
+            {editingNote && (
+              <NoteForm
+                initialTitle={editingNote.title}
+                initialContent={editingNote.content}
+                submitLabel="Update"
+                loading={updating}
+                onSubmit={handleUpdate}
+                onCancel={() => {
+                  setEditOpen(false);
+                  setEditingNote(null);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <ConfirmDialog
+          open={deletingNote !== null}
+          title="Delete this note?"
+          description={
+            deletingNote
+              ? `"${deletingNote.title}" will be permanently deleted.`
+              : undefined
+          }
+          loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingNote(null)}
+        />
       </div>
     </MainLayout>
   );

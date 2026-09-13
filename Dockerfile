@@ -20,4 +20,8 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "XOR.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+# WEB_CONCURRENCY is set by Render based on the instance's actual CPU
+# allotment; a hardcoded worker count would ignore that and over- or
+# under-provision. The explicit `exec` hands gunicorn PID 1 so it still
+# receives Docker/Render's shutdown signal directly, same as before.
+CMD ["sh", "-c", "exec gunicorn XOR.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_CONCURRENCY:-2} --timeout 120"]
