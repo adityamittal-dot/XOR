@@ -19,8 +19,8 @@ python-dotenv==1.2.1
 pdfplumber==0.11.9
 google-genai==1.51.0
 
-# Media storage (S3-compatible - Cloudflare R2 in production; unused, and
-# never imported, unless R2_BUCKET_NAME is set)
+# Media storage (any S3-compatible bucket - Backblaze B2, R2, S3, MinIO;
+# unused, and never imported, unless S3_BUCKET_NAME is set)
 django-storages[s3]==1.14.6
 
 # Serving

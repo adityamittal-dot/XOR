@@ -155,24 +155,27 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Uploaded lab reports move to an S3-compatible bucket (Cloudflare R2) when
-# one is configured, since a free-tier host's local disk does not survive a
-# restart or redeploy. Local disk remains the default so a fresh clone and
-# the test suite need no object storage credentials.
-R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
-if R2_BUCKET_NAME:
+# Uploaded lab reports move to any S3-compatible bucket (Backblaze B2,
+# Cloudflare R2, MinIO, AWS S3 itself, ...) when one is configured, since a
+# free-tier host's local disk does not survive a restart or redeploy. Local
+# disk remains the default so a fresh clone and the test suite need no
+# object storage credentials.
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "")
+if S3_BUCKET_NAME:
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
-    AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
-    AWS_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
-    AWS_S3_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
-    AWS_S3_REGION_NAME = "auto"
+    AWS_STORAGE_BUCKET_NAME = S3_BUCKET_NAME
+    AWS_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
+    AWS_S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL")
+    # "auto" is Cloudflare R2's magic region value; a real provider (B2, AWS)
+    # needs its actual region here instead, e.g. "us-west-004".
+    AWS_S3_REGION_NAME = os.getenv("S3_REGION_NAME", "auto")
     AWS_S3_ADDRESSING_STYLE = "path"
     AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
-    # R2 buckets are private; hand out short-lived signed URLs instead of
+    # Buckets are private; hand out short-lived signed URLs instead of
     # relying on a public bucket, which is a step up from the local-disk
     # setup this replaces.
     AWS_QUERYSTRING_AUTH = True
