@@ -73,6 +73,8 @@ All settings come from the environment; see `.env.example` for the full list.
 | `GEMINI_API_KEY`       | Enables analysis and chat. Without it uploads store as `FAILED`. |
 | `THROTTLE_LAB_AI`      | Rate limit on the AI endpoints, default `20/hour`.         |
 | `MAX_UPLOAD_SIZE_BYTES`| Upload ceiling, default 10 MB.                             |
+| `R2_BUCKET_NAME`       | Set to store uploads in an S3-compatible bucket (e.g. Cloudflare R2) instead of local disk — needed on hosts with an ephemeral filesystem. Leave empty for local disk. |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_ENDPOINT_URL` | Required alongside `R2_BUCKET_NAME`. |
 
 ## API
 

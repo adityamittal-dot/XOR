@@ -19,6 +19,10 @@ python-dotenv==1.2.1
 pdfplumber==0.11.9
 google-genai==1.51.0
 
+# Media storage (S3-compatible - Cloudflare R2 in production; unused, and
+# never imported, unless R2_BUCKET_NAME is set)
+django-storages[s3]==1.14.6
+
 # Serving
 gunicorn==23.0.0
 whitenoise==6.11.0
