@@ -213,6 +213,9 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "lab_ai": os.getenv("THROTTLE_LAB_AI", "20/hour"),
+        # Caps credential-guessing attempts against login/register; keyed by
+        # IP since these requests are unauthenticated.
+        "auth": os.getenv("THROTTLE_AUTH", "20/min"),
     },
 }
 
