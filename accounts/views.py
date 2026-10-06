@@ -29,6 +29,7 @@ def tokens_for(user) -> dict:
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -43,6 +44,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -69,6 +71,7 @@ class GoogleLoginView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = GoogleLoginSerializer(data=request.data)
@@ -132,7 +135,13 @@ class LogoutView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            RefreshToken(serializer.validated_data["refresh"]).blacklist()
+            token = RefreshToken(serializer.validated_data["refresh"])
+            # Without this check, any authenticated user could blacklist a
+            # refresh token belonging to someone else just by submitting it
+            # here, logging that other user out of their session.
+            if str(token["user_id"]) != str(request.user.pk):
+                return Response(status=status.HTTP_205_RESET_CONTENT)
+            token.blacklist()
         except TokenError:
             pass
 
