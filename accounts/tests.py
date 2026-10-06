@@ -1,9 +1,11 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
 
 User = get_user_model()
 
@@ -61,6 +63,18 @@ class LoginTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_login_is_rate_limited(self):
+        cache.clear()
+        bad = {"email": "user@example.com", "password": "wrong"}
+        # ScopedRateThrottle reads its rates from a class attribute cached at
+        # import time, so a plain override_settings() never reaches it.
+        with patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"auth": "1/min"}):
+            first = self.client.post("/api/auth/login/", bad)
+            self.assertEqual(first.status_code, status.HTTP_400_BAD_REQUEST)
+
+            throttled = self.client.post("/api/auth/login/", bad)
+            self.assertEqual(throttled.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
     def test_me_requires_authentication(self):
         self.assertEqual(
             self.client.get("/api/auth/me/").status_code, status.HTTP_401_UNAUTHORIZED
@@ -103,6 +117,23 @@ class LogoutTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.post("/api/auth/logout/", {"refresh": "not-a-real-token"})
         self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+    def test_cannot_blacklist_another_users_refresh_token(self):
+        User.objects.create_user(email="other@example.com", password="s3cure-pass-42")
+        login = self.client.post(
+            "/api/auth/login/",
+            {"email": "other@example.com", "password": "s3cure-pass-42"},
+        )
+        other_refresh = login.data["refresh"]
+
+        # Authenticated as self.user, but submitting other's refresh token.
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post("/api/auth/logout/", {"refresh": other_refresh})
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+        # The other user's token must still be usable - it was not blacklisted.
+        retry = self.client.post("/api/auth/refresh/", {"refresh": other_refresh})
+        self.assertEqual(retry.status_code, status.HTTP_200_OK)
 
 
 @override_settings(GOOGLE_CLIENT_ID="test-client-id")
