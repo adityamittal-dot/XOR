@@ -43,7 +43,7 @@ class LabReportViewSet(viewsets.ModelViewSet):
 
     def get_throttles(self):
         # Only the AI-backed endpoints are rate limited; plain reads are not.
-        if self.action in {"create", "chat"}:
+        if self.action in {"create", "chat", "reanalyze"}:
             return super().get_throttles()
         return []
 

@@ -2,10 +2,12 @@ import io
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
 
 from lab.gemini_client import GeminiUnavailable, _safe_json_load
 from lab.models import LabReport
@@ -134,6 +136,25 @@ class LabReportApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(storage.exists(stored_name))
+
+    @patch("lab.views.analyze_lab_report", return_value=ANALYSIS)
+    @patch("lab.views.extract_text_from_pdf", return_value="Hemoglobin 13.5 g/dL")
+    def test_reanalyze_is_rate_limited(self, _extract, _analyze):
+        # reanalyze re-runs the same AI call as create, so it must share the
+        # lab_ai throttle scope instead of being callable without limit.
+        # ScopedRateThrottle reads its rates from a class attribute cached at
+        # import time, so a plain override_settings() never reaches it.
+        cache.clear()
+        report = LabReport.objects.create(
+            user=self.user, title="Mine", file=pdf_upload(), status=LabReport.Status.FAILED
+        )
+
+        with patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"lab_ai": "1/hour"}):
+            first = self.client.post(f"/api/lab-reports/{report.pk}/reanalyze/")
+            self.assertEqual(first.status_code, status.HTTP_200_OK)
+
+            second = self.client.post(f"/api/lab-reports/{report.pk}/reanalyze/")
+            self.assertEqual(second.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
     @patch("lab.views.chat_about_lab_report", return_value="Hello, here is the answer.")
     def test_chat_returns_reply(self, _chat):
